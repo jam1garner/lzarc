@@ -1,5 +1,6 @@
 use structopt::StructOpt;
 use std::path::PathBuf;
+use std::fs;
 
 use lzarc::LzarcFile;
 
@@ -29,14 +30,20 @@ enum Args {
 
 fn main() {
     match Args::from_args() {
-        Args::Extract { file, out_dir } => {
-
-        }
+        Args::Extract { file, out_dir } => extract(file, out_dir),
         Args::List { file, size_bytes } => list(file, size_bytes),
         Args::Pack { dir, out_file } => todo!(),
     }
 }
 
+fn extract(in_file: PathBuf, out_dir: PathBuf) {
+    let lzarc = LzarcFile::open(in_file).unwrap();
+    for file in lzarc.files {
+        let path = out_dir.join(file.name);
+        let _ = fs::create_dir_all(path.parent().unwrap());
+        fs::write(path, file.data).unwrap();
+    }
+}
 
 fn list(in_file: PathBuf, byte_count: bool) {
     let lzarc = LzarcFile::open(in_file).unwrap();
