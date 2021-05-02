@@ -4,6 +4,19 @@ version = "0.1.0"
 authors = ["jam1garner <8260240+jam1garner@users.noreply.github.com>"]
 edition = "2018"
 
+[[bin]]
+name = "lzarc"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
 binread = "2.1.1"
 rust_lzss = { git = "https://github.com/jam1garner/rust_lzss" }
+
+# CLI
+structopt = { version = "0.3.21", optional = true }
+prettytable-rs = { version = "0.8.0", optional = true }
+humansize = { version = "1.1.0", optional = true }
+
+[features]
+cli = ["structopt", "prettytable-rs", "humansize"]

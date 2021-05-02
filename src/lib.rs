@@ -1,23 +1,28 @@
-use binread::{NullString, derive_binread, PosValue, io::SeekFrom};
+use binread::{BinReaderExt, derive_binread, NullString, io::{Read, Seek, SeekFrom}};
+use std::io::BufReader;
+use std::path::Path;
+
+pub use binread::Error;
+pub use binread::BinResult;
 
 #[derive_binread]
 #[derive(Debug)]
-struct LzarcFile {
-    file_size: u32,
-    unk: u32,
+pub struct LzarcFile {
+    pub file_size: u32,
+    pub unk: u32,
 
     #[br(temp)]
     file_count: u32,
 
     #[br(count = file_count)]
-    files: Vec<FileEntry>,
+    pub files: Vec<FileEntry>,
 }
 
 #[derive_binread]
 #[derive(Debug)]
-struct FileEntry {
+pub struct FileEntry {
     #[br(pad_size_to = 0x80, map = NullString::into_string)]
-    name: String,
+    pub name: String,
 
     #[br(temp)]
     data_pos: u32,
@@ -31,7 +36,7 @@ struct FileEntry {
     #[br(temp)]
     uncompressed_size: u32,
 
-    #[br(temp, assert(uncompressed_size == uncompressed_size2))]
+    #[br(temp/*, assert(uncompressed_size == uncompressed_size2)*/)]
     uncompressed_size2: u32,
 
     #[br(
@@ -40,7 +45,7 @@ struct FileEntry {
         try_map = decompress,
         count = compressed_size
     )]
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 fn decompress(compressed: Vec<u8>) -> binread::io::Result<Vec<u8>> {
@@ -49,10 +54,20 @@ fn decompress(compressed: Vec<u8>) -> binread::io::Result<Vec<u8>> {
     )
 }
 
+impl LzarcFile {
+    pub fn open<P: AsRef<Path>>(path: P) -> BinResult<Self> {
+        BufReader::new(std::fs::File::open(path)?).read_be()
+    }
+
+    pub fn read<R: Read + Seek>(reader: &mut R) -> BinResult<Self> {
+        reader.read_be()
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use binread::BinReaderExt;
 
     #[test]
     fn parse() {
