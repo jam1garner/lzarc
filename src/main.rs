@@ -2,10 +2,11 @@ use structopt::StructOpt;
 use std::path::PathBuf;
 use std::fs;
 
-use lzarc::LzarcFile;
-
 use prettytable::{Table, Row, Cell, row, cell, format::{FormatBuilder, LinePosition, LineSeparator}};
 use humansize::{FileSize, file_size_opts::CONVENTIONAL};
+use walkdir::WalkDir;
+
+use lzarc::{LzarcFile, FileEntry};
 
 #[derive(StructOpt)]
 enum Args {
@@ -32,8 +33,36 @@ fn main() {
     match Args::from_args() {
         Args::Extract { file, out_dir } => extract(file, out_dir),
         Args::List { file, size_bytes } => list(file, size_bytes),
-        Args::Pack { dir, out_file } => todo!(),
+        Args::Pack { dir, out_file } => pack(dir, out_file),
     }
+}
+
+fn pack(dir: PathBuf, out_file: PathBuf) {
+    let files = WalkDir::new(&dir)
+        .into_iter()
+        .filter_map(|file| {
+            let file = file.unwrap();
+            if file.file_type().is_file() {
+                Some(FileEntry {
+                    name: pathdiff::diff_paths(
+                            file.path(),
+                            &dir
+                        ).unwrap()
+                        .to_string_lossy()
+                        .into_owned(),
+                    data: fs::read(file.path()).unwrap(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    LzarcFile {
+        file_size: 0, // ignored
+        aligned_size: 0, // ignored
+        files
+    }.save(out_file).unwrap();
 }
 
 fn extract(in_file: PathBuf, out_dir: PathBuf) {

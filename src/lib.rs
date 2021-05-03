@@ -5,11 +5,16 @@ use std::path::Path;
 pub use binread::Error;
 pub use binread::BinResult;
 
+mod writer;
+
 #[derive_binread]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct LzarcFile {
     pub file_size: u32,
-    pub unk: u32,
+
+    /// size when being loaded (decompressed) into a buffer where each file
+    /// is 8KiB-aligned with 8KiB padding before each. Minimum 8KiB for empty archive.
+    pub aligned_size: u32,
 
     #[br(temp)]
     file_count: u32,
@@ -19,7 +24,7 @@ pub struct LzarcFile {
 }
 
 #[derive_binread]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FileEntry {
     #[br(pad_size_to = 0x80, map = NullString::into_string)]
     pub name: String,
@@ -30,14 +35,16 @@ pub struct FileEntry {
     #[br(temp)]
     compressed_size: u32,
 
+    /// position when being loaded (decompressed) into a buffer where each file
+    /// is 8KiB-aligned with 8KiB padding before each. Minimum 8KiB for empty archive.
     #[br(temp)]
-    unk: u32,
+    aligned_pos: u32,
+
+    #[br(temp)]
+    uncompressed_size_plus_something: u32,
 
     #[br(temp)]
     uncompressed_size: u32,
-
-    #[br(temp/*, assert(uncompressed_size == uncompressed_size2)*/)]
-    uncompressed_size2: u32,
 
     #[br(
         restore_position,
@@ -73,11 +80,18 @@ mod tests {
     fn parse() {
         let mut x = std::io::Cursor::new(std::fs::read("/home/jam/dev/sarc/Fld_TN_PostOffice_map.lzarc").unwrap());
         let lzarc: LzarcFile = x.read_be().unwrap();
+    }
 
-        for file in lzarc.files {
-            if file.data.is_empty() {
-                println!("{}", file.name);
-            }
-        }
+    #[test]
+    fn double_round_trip() {
+        let mut x = std::io::Cursor::new(std::fs::read("/home/jam/dev/sarc/Fld_TN_PostOffice_map.lzarc").unwrap());
+        let mut lzarc: LzarcFile = x.read_be().unwrap();
+        
+        let mut data = Vec::new();
+        lzarc.write(&mut data).unwrap();
+
+        let lzarc2: LzarcFile = std::io::Cursor::new(data).read_be().unwrap();
+
+        assert_eq!(lzarc.files, lzarc2.files);
     }
 }
