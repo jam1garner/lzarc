@@ -2,7 +2,7 @@ use structopt::StructOpt;
 use std::path::PathBuf;
 use std::fs;
 
-use prettytable::{Table, Row, Cell, row, cell, format::{FormatBuilder, LinePosition, LineSeparator}};
+use prettytable::{Table, row, cell, format::{FormatBuilder, LinePosition, LineSeparator}};
 use humansize::{FileSize, file_size_opts::CONVENTIONAL};
 use walkdir::WalkDir;
 
