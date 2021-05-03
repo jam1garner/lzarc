@@ -1,6 +1,6 @@
 [package]
 name = "lzarc"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["jam1garner <8260240+jam1garner@users.noreply.github.com>"]
 edition = "2018"
 
@@ -12,7 +12,8 @@ required-features = ["cli"]
 [dependencies]
 binread = "2.1.1"
 binwrite = "0.2.1"
-rust_lzss = { git = "https://github.com/jam1garner/rust_lzss" }
+#rust_lzss = { git = "https://github.com/jam1garner/rust_lzss" }
+rust_lzss = { path = "../rust_lzss" }
 
 # CLI
 structopt = { version = "0.3.21", optional = true }

@@ -49,6 +49,7 @@ pub struct FileEntry {
     #[br(
         restore_position,
         seek_before = SeekFrom::Start(data_pos as u64),
+        parse_with = binread::helpers::read_bytes,
         try_map = decompress,
         count = compressed_size
     )]
@@ -56,9 +57,9 @@ pub struct FileEntry {
 }
 
 fn decompress(compressed: Vec<u8>) -> binread::io::Result<Vec<u8>> {
-    rust_lzss::decompress(
+    Ok(rust_lzss::decompress(
         &mut binread::io::Cursor::new(&compressed[4..]),
-    )
+    ).unwrap())
 }
 
 impl LzarcFile {
